@@ -1,0 +1,588 @@
+/* Authentic Project IGI Military Tactical FPS Styling */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #0b1116;
+  font-family: 'Share Tech Mono', monospace;
+  color: #c4d7e0;
+}
+
+#canvas-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+/* CRT Scanline & Subtle Vignette Atmosphere */
+.crt-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  background: radial-gradient(circle at center, rgba(0,0,0,0) 65%, rgba(0,0,0,0.38) 100%),
+              linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%);
+  background-size: 100% 100%, 100% 4px;
+}
+
+/* Damage Blood Vignette */
+#damage-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 11;
+  box-shadow: inset 0 0 100px rgba(255, 0, 0, 0);
+  transition: box-shadow 0.1s ease;
+}
+
+/* Directional Damage Arc Indicator */
+#damage-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 220px;
+  height: 220px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 12;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.damage-arc {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  border-top-color: #ff2222;
+  filter: drop-shadow(0 0 8px #ff0000);
+}
+
+/* Tactical HUD Layer */
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px 24px;
+}
+
+/* Top Bar */
+.hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.radar-wrapper {
+  background: rgba(10, 20, 14, 0.85);
+  border: 1px solid rgba(68, 221, 119, 0.6);
+  padding: 6px;
+  border-radius: 3px;
+  box-shadow: 0 0 15px rgba(68, 221, 119, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.radar-header {
+  font-size: 11px;
+  color: #44dd77;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+#radar-canvas {
+  width: 180px;
+  height: 180px;
+  display: block;
+}
+
+.objective-banner {
+  background: rgba(10, 16, 20, 0.9);
+  border-top: 2px solid #44dd77;
+  border-bottom: 2px solid #44dd77;
+  padding: 8px 28px;
+  text-align: center;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.7);
+  min-width: 440px;
+}
+
+.obj-title {
+  font-size: 11px;
+  color: #ffaa00;
+  letter-spacing: 3px;
+  margin-bottom: 3px;
+}
+
+.obj-text {
+  font-size: 14px;
+  color: #eaf6ee;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.top-right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.threat-banner {
+  background: rgba(10, 16, 20, 0.9);
+  border: 1px solid #44dd77;
+  padding: 6px 16px;
+  border-radius: 3px;
+  text-align: right;
+  min-width: 170px;
+}
+
+.threat-label {
+  font-size: 10px;
+  color: #8da495;
+  letter-spacing: 2px;
+}
+
+.threat-status {
+  font-size: 15px;
+  font-weight: bold;
+  color: #44dd77;
+  letter-spacing: 2px;
+}
+
+.threat-status.alert {
+  color: #ff3333;
+  animation: pulse-red 0.8s infinite;
+}
+
+.threat-status.suspicious {
+  color: #ffcc00;
+}
+
+.map-key-prompt {
+  background: rgba(10, 16, 20, 0.8);
+  border: 1px solid rgba(68, 221, 119, 0.4);
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #44dd77;
+  letter-spacing: 1px;
+}
+
+@keyframes pulse-red {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+/* Center Crosshair & Interaction */
+.hud-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.crosshair {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  transition: width 0.08s, height 0.08s;
+}
+
+.crosshair-line {
+  position: absolute;
+  background-color: rgba(68, 221, 119, 0.85);
+}
+
+.crosshair-top { top: 0; left: 11px; width: 2px; height: 7px; }
+.crosshair-bottom { bottom: 0; left: 11px; width: 2px; height: 7px; }
+.crosshair-left { left: 0; top: 11px; width: 7px; height: 2px; }
+.crosshair-right { right: 0; top: 11px; width: 7px; height: 2px; }
+.crosshair-dot {
+  position: absolute;
+  top: 10px; left: 10px;
+  width: 4px; height: 4px;
+  background-color: rgba(68, 221, 119, 0.95);
+  border-radius: 50%;
+}
+
+/* Hitmarker */
+#hitmarker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.05s ease;
+}
+
+#hitmarker::before, #hitmarker::after {
+  content: '';
+  position: absolute;
+  background-color: #ff3333;
+}
+
+#hitmarker::before {
+  top: 13px; left: 0; width: 28px; height: 2px; transform: rotate(45deg);
+}
+
+#hitmarker::after {
+  top: 13px; left: 0; width: 28px; height: 2px; transform: rotate(-45deg);
+}
+
+/* Interaction Prompt */
+.interact-prompt {
+  margin-top: 40px;
+  background: rgba(10, 16, 22, 0.92);
+  border: 1px solid #44dd77;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.85);
+  display: none;
+}
+
+.interact-key {
+  display: inline-block;
+  background: #44dd77;
+  color: #0b1116;
+  font-weight: bold;
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+
+.interact-text {
+  font-size: 13px;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+.hack-progress-bar-container {
+  width: 190px;
+  height: 8px;
+  background: #182228;
+  border: 1px solid #44dd77;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.hack-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: #44dd77;
+  transition: width 0.05s linear;
+}
+
+/* Bottom Bar: Health, Armor, Weapon Selector */
+.hud-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.vital-panel {
+  background: rgba(10, 16, 20, 0.88);
+  border-left: 3px solid #44dd77;
+  border-top: 1px solid rgba(68, 221, 119, 0.35);
+  padding: 12px 20px;
+  border-radius: 2px;
+  min-width: 260px;
+}
+
+.vital-row {
+  margin-bottom: 8px;
+}
+
+.vital-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #8da495;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.bar-container {
+  width: 100%;
+  height: 10px;
+  background: #182026;
+  border: 1px solid #3d4a41;
+  padding: 1px;
+}
+
+.health-fill {
+  width: 100%;
+  height: 100%;
+  background: #44dd77;
+  transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.armor-fill {
+  width: 100%;
+  height: 100%;
+  background: #33aaff;
+  transition: width 0.2s ease;
+}
+
+.stance-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #c0d4c6;
+  margin-top: 6px;
+}
+
+.stance-badge {
+  background: rgba(68, 221, 119, 0.2);
+  border: 1px solid #44dd77;
+  color: #44dd77;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.visibility-badge {
+  font-size: 11px;
+  color: #8da495;
+}
+
+.weapon-panel {
+  background: rgba(10, 16, 20, 0.88);
+  border-right: 3px solid #44dd77;
+  border-top: 1px solid rgba(68, 221, 119, 0.35);
+  padding: 12px 24px;
+  border-radius: 2px;
+  text-align: right;
+  min-width: 260px;
+}
+
+.weapon-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 15px;
+  color: #e6f5ea;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.ammo-display {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 26px;
+  font-weight: 900;
+  color: #44dd77;
+  letter-spacing: 2px;
+}
+
+.ammo-reserve {
+  font-size: 15px;
+  color: #7b9484;
+}
+
+.fire-mode {
+  font-size: 11px;
+  color: #8da495;
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+
+/* Sniper 4x Scope Optical Overlay */
+#sniper-scope-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 25;
+  display: none;
+}
+
+.scope-reticle-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Satellite Map Modal (M Key) */
+#satmap-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(6, 12, 10, 0.88);
+  backdrop-filter: blur(4px);
+  z-index: 45;
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+.satmap-frame {
+  background: #08140e;
+  border: 2px solid #44dd77;
+  box-shadow: 0 0 35px rgba(68, 221, 119, 0.3);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#satmap-canvas {
+  display: block;
+  width: 640px;
+  height: 640px;
+  max-width: 90vw;
+  max-height: 85vh;
+}
+
+/* Screen Overlays (Start, Pause, GameOver, Complete) */
+.overlay-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(8, 12, 15, 0.94);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tactical-dossier {
+  width: 640px;
+  max-width: 92%;
+  background: #0f161b;
+  border: 2px solid #44dd77;
+  box-shadow: 0 0 35px rgba(68, 221, 119, 0.25);
+  padding: 28px;
+  position: relative;
+}
+
+.dossier-header {
+  border-bottom: 2px solid #44dd77;
+  padding-bottom: 12px;
+  margin-bottom: 18px;
+}
+
+.dossier-tag {
+  font-size: 11px;
+  color: #ffaa00;
+  letter-spacing: 3px;
+  margin-bottom: 3px;
+}
+
+.dossier-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 22px;
+  color: #eaf6ee;
+  letter-spacing: 2px;
+}
+
+.dossier-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #a8bece;
+  margin-bottom: 20px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: rgba(20, 30, 36, 0.7);
+  padding: 14px;
+  border: 1px solid #23343d;
+  margin-bottom: 20px;
+}
+
+.control-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.key-badge {
+  background: #44dd77;
+  color: #0b1116;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.tactical-btn {
+  width: 100%;
+  background: #44dd77;
+  color: #0b1116;
+  border: none;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tactical-btn:hover {
+  background: #66ff88;
+  box-shadow: 0 0 20px rgba(68, 221, 119, 0.6);
+  transform: translateY(-1px);
+}
+
+.stats-table {
+  width: 100%;
+  margin-bottom: 22px;
+  border-collapse: collapse;
+}
+
+.stats-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #1f2e37;
+  font-size: 13px;
+}
+
+.stats-value {
+  text-align: right;
+  font-weight: bold;
+  color: #44dd77;
+  font-family: 'Orbitron', sans-serif;
+}

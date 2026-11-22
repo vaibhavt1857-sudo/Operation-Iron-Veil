@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PROJECT I.G.I. // TACTICAL STEALTH SHOOTER (2000)</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <!-- 3D Three.js WebGL Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- CRT Scanline Atmosphere -->
+  <div class="crt-overlay"></div>
+
+  <!-- Damage Blood Vignette Overlay -->
+  <div id="damage-overlay"></div>
+
+  <!-- Directional Bullet Damage Indicator -->
+  <div id="damage-indicator">
+    <div class="damage-arc" id="damage-arc"></div>
+  </div>
+
+  <!-- Sniper Rifle 4x Optical Scope Overlay -->
+  <div id="sniper-scope-overlay">
+    <canvas id="scope-canvas"></canvas>
+  </div>
+
+  <!-- Tactical Satellite PDA Map ("M" Key) -->
+  <div id="satmap-screen">
+    <div class="satmap-frame">
+      <canvas id="satmap-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- Tactical In-Game HUD -->
+  <div id="hud">
+    <!-- Top Row: Minimap Radar, 4-Stage Objectives, Threat Banner & Satellite Map Prompt -->
+    <div class="hud-top">
+      <div class="radar-wrapper">
+        <div class="radar-header">// TACTICAL RADAR //</div>
+        <canvas id="radar-canvas"></canvas>
+      </div>
+
+      <div class="objective-banner">
+        <div class="obj-title" id="obj-step">STAGE 1 // CHECKPOINT INFILTRATION</div>
+        <div class="obj-text" id="obj-text">INFILTRATE OUTER CHECKPOINT & NEUTRALIZE GUARDS</div>
+      </div>
+
+      <div class="top-right-panel">
+        <div class="threat-banner">
+          <div class="threat-label">BASE ALARM STATUS</div>
+          <div class="threat-status" id="threat-status">CLEAR</div>
+        </div>
+        <div class="map-key-prompt">[M] SATELLITE MAP</div>
+      </div>
+    </div>
+
+    <!-- Center Crosshair & Interaction Prompt -->
+    <div class="hud-center">
+      <div class="crosshair" id="crosshair">
+        <div class="crosshair-line crosshair-top"></div>
+        <div class="crosshair-line crosshair-bottom"></div>
+        <div class="crosshair-line crosshair-left"></div>
+        <div class="crosshair-line crosshair-right"></div>
+        <div class="crosshair-dot"></div>
+      </div>
+
+      <div id="hitmarker"></div>
+
+      <div class="interact-prompt" id="interact-prompt">
+        <div>
+          <span class="interact-key" id="interact-btn-label">[HOLD E]</span>
+          <span class="interact-text" id="interact-action-text">HACK DEFENSE MAINFRAME</span>
+        </div>
+        <div class="hack-progress-bar-container">
+          <div class="hack-progress-fill" id="hack-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row: Health, Armor, Stance & Weapon Selector -->
+    <div class="hud-bottom">
+      <div class="vital-panel">
+        <div class="vital-row">
+          <div class="vital-header">
+            <span>OPERATIVE HEALTH</span>
+            <span id="health-num">100%</span>
+          </div>
+          <div class="bar-container">
+            <div class="health-fill" id="health-fill"></div>
+          </div>
+        </div>
+
+        <div class="vital-row">
+          <div class="vital-header">
+            <span>TACTICAL ARMOR</span>
+            <span id="armor-num">100%</span>
+          </div>
+          <div class="bar-container">
+            <div class="armor-fill" id="armor-fill"></div>
+          </div>
+        </div>
+
+        <div class="stance-container">
+          <div class="stance-badge" id="stance-badge">STAND</div>
+          <div class="visibility-badge" id="vis-badge">VISIBILITY: NORMAL</div>
+        </div>
+      </div>
+
+      <div class="weapon-panel">
+        <div class="weapon-name" id="weapon-name">GLOCK 17 9mm</div>
+        <div class="ammo-display">
+          <span id="ammo-cur">17</span> <span class="ammo-reserve">/ <span id="ammo-res">51</span></span>
+        </div>
+        <div class="fire-mode" id="fire-mode">SEMI [SUPPRESSED - T]</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start Screen / Mission Dossier -->
+  <div class="overlay-screen" id="start-screen">
+    <div class="tactical-dossier">
+      <div class="dossier-header">
+        <div class="dossier-tag">TOP SECRET // OPERATION COLD GHOST</div>
+        <div class="dossier-title">PROJECT I.G.I. // RECON DEPLOYMENT</div>
+      </div>
+      <div class="dossier-body">
+        <strong>BRIEFING:</strong> Infiltrate a multi-installation military complex in the Ural mountains. Use stealth, sniper surveillance, and suppressed weaponry to complete the mission.<br/><br/>
+        <strong>TACTICAL MISSION STAGES:</strong><br/>
+        1. <strong>Outer Checkpoint:</strong> Infiltrate the security gate and bypass or eliminate perimeter guards.<br/>
+        2. <strong>Comms Outpost:</strong> Reach the radar tower and destroy the radar control console (gunfire or C4).<br/>
+        3. <strong>Main Airbase & Bunker:</strong> Destroy wall cameras and hack the central command mainframe (hold [E] for 3s).<br/>
+        4. <strong>Helipad Exfiltration:</strong> Reach the north extraction helipad for chopper extraction.
+      </div>
+      <div class="controls-grid">
+        <div class="control-item"><span>Move / Strafe</span><span class="key-badge">W A S D</span></div>
+        <div class="control-item"><span>Look / Aim</span><span class="key-badge">Mouse</span></div>
+        <div class="control-item"><span>Sprint</span><span class="key-badge">Shift</span></div>
+        <div class="control-item"><span>Toggle Crouch (Stealth)</span><span class="key-badge">C</span></div>
+        <div class="control-item"><span>Jump</span><span class="key-badge">Space</span></div>
+        <div class="control-item"><span>Fire Weapon</span><span class="key-badge">Left Click</span></div>
+        <div class="control-item"><span>Aim Down Sights / 4x Scope</span><span class="key-badge">Right Click</span></div>
+        <div class="control-item"><span>Glock 17 / Uzi / AK-47 / M16 / SVD</span><span class="key-badge">1 / 2 / 3 / 4 / 5</span></div>
+        <div class="control-item"><span>Toggle Glock Suppressor</span><span class="key-badge">T</span></div>
+        <div class="control-item"><span>Toggle M16 Burst / Auto</span><span class="key-badge">B</span></div>
+        <div class="control-item"><span>Toggle 1st / 3rd Person View</span><span class="key-badge">V</span></div>
+        <div class="control-item"><span>Reload Weapon</span><span class="key-badge">R</span></div>
+        <div class="control-item"><span>Tactical Satellite PDA Map</span><span class="key-badge">M</span></div>
+      </div>
+      <button class="tactical-btn" id="start-btn">DEPLOY OPERATIVE [CLICK TO ENTER]</button>
+    </div>
+  </div>
+
+  <!-- Pause Screen -->
+  <div class="overlay-screen" id="pause-screen" style="display: none;">
+    <div class="tactical-dossier" style="text-align: center; max-width: 440px;">
+      <div class="dossier-header">
+        <div class="dossier-tag">OPERATION STATUS</div>
+        <div class="dossier-title">MISSION PAUSED</div>
+      </div>
+      <div class="dossier-body">
+        Tactical feed suspended. Press ESC or click Resume to continue.
+      </div>
+      <button class="tactical-btn" id="resume-btn" style="margin-bottom: 12px;">RESUME MISSION</button>
+      <button class="tactical-btn" id="restart-pause-btn" style="background: #2b3a42; color: #c4d7e0;">ABORT & RESTART</button>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div class="overlay-screen" id="gameover-screen" style="display: none;">
+    <div class="tactical-dossier" style="border-color: #ff3333; box-shadow: 0 0 35px rgba(255, 51, 51, 0.35);">
+      <div class="dossier-header" style="border-color: #ff3333;">
+        <div class="dossier-tag" style="color: #ff3333;">CRITICAL FAILURE</div>
+        <div class="dossier-title" style="color: #ff7777;">OPERATIVE K.I.A.</div>
+      </div>
+      <div class="dossier-body">
+        Vital telemetry lost. Operative was neutralized during infiltration.
+      </div>
+      <button class="tactical-btn" id="retry-btn" style="background: #ff3333; color: #ffffff;">REDEPLOY OPERATIVE</button>
+    </div>
+  </div>
+
+  <!-- Mission Complete Screen -->
+  <div class="overlay-screen" id="complete-screen" style="display: none;">
+    <div class="tactical-dossier" style="border-color: #33ff55; box-shadow: 0 0 45px rgba(51, 255, 85, 0.4);">
+      <div class="dossier-header" style="border-color: #33ff55;">
+        <div class="dossier-tag" style="color: #33ff55;">EXFILTRATION SUCCESSFUL</div>
+        <div class="dossier-title">MISSION ACCOMPLISHED</div>
+      </div>
+      <div class="dossier-body">
+        All 4 mission objectives executed. Radar disabled, mainframe compromised, and operative safely evacuated.
+      </div>
+      <table class="stats-table">
+        <tr>
+          <td>MISSION TIME:</td>
+          <td class="stats-value" id="stat-time">03:45</td>
+        </tr>
+        <tr>
+          <td>GUARDS NEUTRALIZED:</td>
+          <td class="stats-value" id="stat-guards">6 / 8</td>
+        </tr>
+        <tr>
+          <td>CAMERAS DESTROYED:</td>
+          <td class="stats-value" id="stat-cameras">3 / 4</td>
+        </tr>
+        <tr>
+          <td>BASE ALARMS RAISED:</td>
+          <td class="stats-value" id="stat-alarms">0</td>
+        </tr>
+        <tr>
+          <td>STEALTH RATING:</td>
+          <td class="stats-value" id="stat-rating" style="color: #ffcc00;">GHOST (RANK S)</td>
+        </tr>
+      </table>
+      <button class="tactical-btn" id="play-again-btn">REPLAY MISSION</button>
+    </div>
+  </div>
+
+  <!-- Application Entry Point -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
