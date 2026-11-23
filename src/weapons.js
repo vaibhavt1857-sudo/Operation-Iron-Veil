@@ -128,7 +128,12 @@ export class WeaponSystem {
     this.adsProgress = 0;
     this.baseFOV = 75;
     this.adsFOV = 48;
-    this.svdScopeFOV = 16; // 4x optical magnification
+    this.svdZoom = 4.0; // Variable 4.0x to 8.0x optical zoom
+    this.isBinocularsActive = false;
+    this.binocularZoom = 4.0; // Variable 2.0x to 12.0x digital zoom
+    this.binocularRangeMeters = 0;
+    this.binocularFocusEnemy = null;
+    this.binocularTagTimer = 0;
 
     // Procedural Sway & Bob
     this.currentSway = new THREE.Vector2(0, 0);
@@ -475,15 +480,76 @@ export class WeaponSystem {
   }
 
   switchWeapon(index) {
-    if (this.isReloading) return;
     if (index < 0 || index >= this.weapons.length) return;
+
+    // Interrupt reload, cancel ADS and cancel binoculars on weapon switch
+    this.isReloading = false;
+    this.reloadTimer = 0;
+    this.isADS = false;
+    this.isBinocularsActive = false;
 
     this.currentWeaponIndex = index;
     this.weapons.forEach((w, i) => {
       if (w.mesh) w.mesh.visible = (i === index);
     });
 
-    audio.playEmptyClick();
+    audio.playWeaponSwitch();
+  }
+
+  cycleWeapon(direction) {
+    if (this.isBinocularsActive) {
+      this.isBinocularsActive = false;
+    }
+    const count = this.weapons.length;
+    const nextIdx = (this.currentWeaponIndex + direction + count) % count;
+    this.switchWeapon(nextIdx);
+  }
+
+  toggleBinoculars() {
+    this.isBinocularsActive = !this.isBinocularsActive;
+    if (this.isBinocularsActive) {
+      this.isADS = false;
+      this.weapons.forEach(w => { if (w.mesh) w.mesh.visible = false; });
+      audio.playBinocularsToggle(true);
+    } else {
+      const cur = this.getCurrentWeapon();
+      if (cur.mesh) cur.mesh.visible = true;
+      audio.playBinocularsToggle(false);
+    }
+    return this.isBinocularsActive;
+  }
+
+  handleMouseWheel(deltaY) {
+    // 1. Zoom Binoculars if active (2x to 12x)
+    if (this.isBinocularsActive) {
+      if (deltaY < 0) {
+        this.binocularZoom = Math.min(12.0, this.binocularZoom + 1.0);
+      } else if (deltaY > 0) {
+        this.binocularZoom = Math.max(2.0, this.binocularZoom - 1.0);
+      }
+      audio.playZoomClick();
+      return true;
+    }
+
+    // 2. Zoom SVD Sniper Scope if zoomed in (4x to 8x)
+    const currentWeapon = this.getCurrentWeapon();
+    if (currentWeapon.id === 'svd' && this.isADS) {
+      if (deltaY < 0) {
+        this.svdZoom = Math.min(8.0, this.svdZoom + 0.5);
+      } else if (deltaY > 0) {
+        this.svdZoom = Math.max(4.0, this.svdZoom - 0.5);
+      }
+      audio.playZoomClick();
+      return true;
+    }
+
+    // 3. Cycle weapons with mouse wheel (Wheel Down = Next, Wheel Up = Prev)
+    if (deltaY > 0) {
+      this.cycleWeapon(1);
+    } else if (deltaY < 0) {
+      this.cycleWeapon(-1);
+    }
+    return true;
   }
 
   getCurrentWeapon() {
@@ -491,6 +557,7 @@ export class WeaponSystem {
   }
 
   setADS(active) {
+    if (this.isBinocularsActive) return;
     this.isADS = active;
   }
 
@@ -501,6 +568,7 @@ export class WeaponSystem {
   }
 
   reload() {
+    if (this.isBinocularsActive) return;
     const w = this.getCurrentWeapon();
     if (this.isReloading || w.currentAmmo === w.magSize || w.reserveAmmo <= 0) return;
 
@@ -510,6 +578,7 @@ export class WeaponSystem {
   }
 
   shoot(playerPos, cameraDir, world, enemyManager, cameraManager) {
+    if (this.isBinocularsActive) return; // Cannot fire weapons while holding binoculars
     const w = this.getCurrentWeapon();
 
     if (this.isReloading) return;
@@ -739,7 +808,78 @@ export class WeaponSystem {
     this.tracers.push({ mesh: line, life: 0.08 });
   }
 
-  update(delta, isMoving, isSprinting, stance, isThirdPerson = false) {
+  updateBinocularRecon(delta, playerPos, forwardDir, world, enemyManager) {
+    const origin = playerPos ? playerPos.clone() : this.camera.position.clone();
+    if (playerPos && Math.abs(origin.y - playerPos.y) < 0.2) {
+      origin.y += 1.65;
+    }
+    const dir = forwardDir ? forwardDir.clone() : this.camera.getWorldDirection(new THREE.Vector3());
+
+    let closestDist = 500.0;
+    let closestEnemy = null;
+
+    // 1. Raycast against world colliders (buildings, walls, containers)
+    if (world && world.colliders) {
+      for (const c of world.colliders) {
+        const t = this.rayAABBIntersect(origin, dir, c);
+        if (t !== null && t.dist > 0.5 && t.dist < closestDist) {
+          closestDist = t.dist;
+        }
+      }
+    }
+
+    // 2. Terrain ground check if looking down
+    if (dir.y < -0.01 && origin.y > 0) {
+      const distToGround = origin.y / (-dir.y);
+      if (distToGround > 0.5 && distToGround < closestDist) {
+        closestDist = distToGround;
+      }
+    }
+
+    // 3. Scan for enemy guards in crosshair view
+    if (enemyManager && enemyManager.guards) {
+      for (const enemy of enemyManager.guards) {
+        if (!enemy.isAlive) continue;
+        const ePos = enemy.position;
+        const toEnemy = ePos.clone().sub(origin);
+        const proj = toEnemy.dot(dir);
+
+        // Guard must be closer than whatever terrain or wall is in front of them
+        if (proj > 1.0 && proj < closestDist) {
+          const closestP = origin.clone().addScaledVector(dir, proj);
+          const dy = closestP.y - ePos.y;
+          const distXZ = Math.hypot(closestP.x - ePos.x, closestP.z - ePos.z);
+
+          // Generous alignment cone for optical binoculars
+          const maxTol = Math.max(0.75, proj * 0.025);
+          if (dy >= -0.2 && dy <= 2.2 && distXZ <= maxTol) {
+            closestEnemy = enemy;
+            closestDist = proj;
+          }
+        }
+      }
+    }
+
+    this.binocularRangeMeters = Math.min(500, Math.round(closestDist));
+
+    if (closestEnemy) {
+      if (this.binocularFocusEnemy === closestEnemy) {
+        this.binocularTagTimer += delta;
+        if (this.binocularTagTimer >= 1.0 && !closestEnemy.isTagged) {
+          closestEnemy.isTagged = true;
+          audio.playTagBeep();
+        }
+      } else {
+        this.binocularFocusEnemy = closestEnemy;
+        this.binocularTagTimer = 0;
+      }
+    } else {
+      this.binocularFocusEnemy = null;
+      this.binocularTagTimer = 0;
+    }
+  }
+
+  update(delta, isMoving, isSprinting, stance, isThirdPerson = false, playerPos = null, forwardDir = null, world = null, enemyManager = null) {
     // Hide viewmodel in 3rd person
     this.viewmodelGroup.visible = !isThirdPerson;
 
@@ -791,18 +931,38 @@ export class WeaponSystem {
       }
     }
 
-    // ADS / Sniper Scope FOV Zoom
-    const targetFOV = this.isADS ? (w.id === 'svd' ? this.svdScopeFOV : this.adsFOV) : this.baseFOV;
-    this.adsProgress = THREE.MathUtils.lerp(this.adsProgress, this.isADS ? 1 : 0, 14 * delta);
+    // ADS / Sniper Scope / Binoculars FOV Zoom
+    let targetFOV = this.baseFOV;
+    if (this.isBinocularsActive) {
+      targetFOV = this.baseFOV / this.binocularZoom;
+    } else if (this.isADS) {
+      if (w.id === 'svd') {
+        targetFOV = this.baseFOV / this.svdZoom;
+      } else {
+        targetFOV = this.adsFOV;
+      }
+    }
+
+    const isZooming = (this.isADS || this.isBinocularsActive);
+    this.adsProgress = THREE.MathUtils.lerp(this.adsProgress, isZooming ? 1 : 0, 14 * delta);
     this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFOV, 14 * delta);
     this.camera.updateProjectionMatrix();
 
-    if (w.id === 'svd' && this.isADS && this.adsProgress > 0.8) {
-      w.mesh.visible = false;
-      this.handsGroup.visible = false;
-    } else {
-      w.mesh.visible = (this.currentWeaponIndex === this.weapons.indexOf(w));
-      this.handsGroup.visible = true;
+    // Ensure strictly only the equipped weapon is visible (hidden during SVD scope or Binoculars)
+    this.weapons.forEach((weapon, i) => {
+      if (weapon.mesh) {
+        if (i === this.currentWeaponIndex && !isThirdPerson && !this.isBinocularsActive) {
+          const hideForScope = (weapon.id === 'svd' && this.isADS && this.adsProgress > 0.45);
+          weapon.mesh.visible = !hideForScope;
+        } else {
+          weapon.mesh.visible = false;
+        }
+      }
+    });
+
+    // Update Tactical Binoculars target scanning & auto-tagging
+    if (this.isBinocularsActive) {
+      this.updateBinocularRecon(delta, playerPos, forwardDir, world, enemyManager);
     }
 
     // Sway lerp

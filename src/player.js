@@ -31,11 +31,13 @@ export class Player {
     this.isSprinting = false;
     this.isMoving = false;
 
-    // Vitals: Health & Body Armor
+    // Vitals: Health, Body Armor & Field Syringes
     this.maxHealth = 100;
     this.health = 100;
     this.maxArmor = 100;
     this.armor = 100;
+    this.syringeCount = 3;
+    this.healFlashTimer = 0;
     this.isAlive = true;
 
     // View Perspective: First-Person vs Third-Person ("V" Key)
@@ -155,7 +157,8 @@ export class Player {
       const movementX = e.movementX || 0;
       const movementY = e.movementY || 0;
 
-      const sensitivity = 0.0022;
+      const zoomFactor = Math.max(0.12, Math.min(1.0, this.camera.fov / 75.0));
+      const sensitivity = 0.0022 * zoomFactor;
       this.yaw -= movementX * sensitivity;
       this.pitch -= movementY * sensitivity;
 
@@ -270,6 +273,40 @@ export class Player {
     }
   }
 
+  useSyringe(ui = null) {
+    if (!this.isAlive || this.syringeCount <= 0) return false;
+    if (this.health >= this.maxHealth) {
+      if (ui && ui.showHealNotification) {
+        ui.showHealNotification('HEALTH FULL // SYRINGE UNNECESSARY', '#ffaa33');
+      }
+      return false;
+    }
+
+    const restored = Math.min(40, this.maxHealth - this.health);
+    this.health = Math.min(this.maxHealth, this.health + 40);
+    this.syringeCount--;
+    this.healFlashTimer = 0.6;
+    audio.playSyringeHeal();
+
+    if (ui && ui.showHealNotification) {
+      ui.showHealNotification(`+${restored} HEALTH // FIELD SYRINGE (${this.syringeCount} LEFT)`);
+    }
+    return true;
+  }
+
+  heal(amount, sourceLabel = 'FIELD MEDKIT', ui = null) {
+    if (!this.isAlive || this.health >= this.maxHealth) return 0;
+    const restored = Math.min(amount, this.maxHealth - this.health);
+    this.health = Math.min(this.maxHealth, this.health + amount);
+    this.healFlashTimer = 0.6;
+    audio.playMedkitPickup();
+
+    if (ui && ui.showHealNotification) {
+      ui.showHealNotification(`+${restored} HEALTH // ${sourceLabel}`);
+    }
+    return restored;
+  }
+
   reset(startPos = new THREE.Vector3(0, 1.75, 235)) {
     this.position.copy(startPos);
     this.velocity.set(0, 0, 0);
@@ -277,6 +314,8 @@ export class Player {
     this.yaw = 0;
     this.health = this.maxHealth;
     this.armor = this.maxArmor;
+    this.syringeCount = 3;
+    this.healFlashTimer = 0;
     this.isAlive = true;
     this.isCrouched = false;
     this.currentHeight = this.standHeight;
@@ -401,6 +440,7 @@ export class Player {
 
     if (this.damageVignetteTimer > 0) this.damageVignetteTimer -= delta;
     if (this.damageIndicatorTimer > 0) this.damageIndicatorTimer -= delta;
+    if (this.healFlashTimer > 0) this.healFlashTimer -= delta;
   }
 
   getForwardDirection() {

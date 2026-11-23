@@ -675,6 +675,165 @@ class SoundEngine {
     osc.stop(now + 0.25);
   }
 
+  // Optical Zoom Adjustment Click (Sniper Scope & Binoculars)
+  playZoomClick() {
+    if (!this.initialized || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1400, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.035);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.035);
+  }
+
+  // Tactical Binoculars Toggle On/Off
+  playBinocularsToggle(isActive) {
+    if (!this.initialized || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    if (isActive) {
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.linearRampToValueAtTime(980, now + 0.09);
+    } else {
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.linearRampToValueAtTime(440, now + 0.07);
+    }
+    gain.gain.setValueAtTime(0.14, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.09);
+  }
+
+  // Target Lock-On / Guard Tagging Confirmation Beep
+  playTagBeep() {
+    if (!this.initialized || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Dual high-tech harmonic ping
+    [1760, 2640].forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+      gain.gain.setValueAtTime(0.2, now + idx * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.12);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now + idx * 0.05);
+      osc.stop(now + idx * 0.05 + 0.12);
+    });
+  }
+
+  // Medical Syringe Injection & Vitals Stabilization (Project IGI Syringe)
+  playSyringeHeal() {
+    if (!this.initialized || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Pneumatic injector hiss
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer(0.25);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2400, now);
+    filter.Q.setValueAtTime(3.0, now);
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.28, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(this.sfxGain);
+    noise.start(now);
+    noise.stop(now + 0.25);
+
+    // Heartbeat / stabilization tone
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(80, now + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.35);
+    gain.gain.setValueAtTime(0.45, now + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now + 0.08);
+    osc.stop(now + 0.35);
+  }
+
+  // Field Medkit Pickup (Restoration chime)
+  playMedkitPickup() {
+    if (!this.initialized || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const notes = [440, 554.37, 659.25, 880]; // A Major arpeggio
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.045);
+      gain.gain.setValueAtTime(0.18, now + idx * 0.045);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.045 + 0.16);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now + idx * 0.045);
+      osc.stop(now + idx * 0.045 + 0.16);
+    });
+  }
+
+  // Ammo Crate Pickup (Steel latch & heavy magazine click)
+  playAmmoPickup() {
+    if (!this.initialized || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    const gain2 = this.ctx.createGain();
+
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(320, now);
+    osc1.frequency.exponentialRampToValueAtTime(90, now + 0.08);
+    gain1.gain.setValueAtTime(0.25, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc1.connect(gain1);
+    gain1.connect(this.sfxGain);
+    osc1.start(now);
+    osc1.stop(now + 0.08);
+
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(640, now + 0.06);
+    osc2.frequency.exponentialRampToValueAtTime(140, now + 0.15);
+    gain2.gain.setValueAtTime(0.2, now + 0.06);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc2.connect(gain2);
+    gain2.connect(this.sfxGain);
+    osc2.start(now + 0.06);
+    osc2.stop(now + 0.15);
+  }
+
+  // Weapon Switch Ready Click
+  playWeaponSwitch() {
+    if (!this.initialized || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(160, now + 0.06);
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.06);
+  }
+
   startHelicopterLoop() {
     if (!this.initialized || !this.ctx || this.helicopterNode) return;
     const now = this.ctx.currentTime;

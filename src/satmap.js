@@ -210,6 +210,17 @@ export class SatelliteMap {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1;
       ctx.stroke();
+
+      // Tactical Highlight for Binocular-Tagged Guards
+      if (g.isTagged) {
+        ctx.strokeStyle = '#38ee68';
+        ctx.lineWidth = 1.6;
+        const s = 8;
+        ctx.strokeRect(gp.x - s, gp.y - s, s * 2, s * 2);
+        ctx.fillStyle = '#38ee68';
+        ctx.font = 'bold 9px monospace';
+        ctx.fillText(`[TAGGED: ${g.state}]`, gp.x - 24, gp.y - 11);
+      }
     });
 
     // 6. Draw Waypoint Objective Indicators

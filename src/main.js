@@ -9,6 +9,7 @@ import { CameraManager } from './cameras.js';
 import { TacticalRadar } from './radar.js';
 import { SatelliteMap } from './satmap.js';
 import { UIManager } from './ui.js';
+import { PickupManager } from './pickups.js';
 import { audio } from './audio.js';
 import { textures } from './textures.js';
 
@@ -110,10 +111,16 @@ class Game {
 
     // 10. Tactical UI
     this.ui = new UIManager();
+
+    // 11. Field Pickups (Medkits & Ammo Crates)
+    this.pickups = new PickupManager(this.scene);
+    this.pickups.initPickups(this.world);
   }
 
   setupEventListeners() {
     window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    let rmbStartTime = 0;
 
     // Mouse Controls
     window.addEventListener('mousedown', (e) => {
@@ -123,7 +130,12 @@ class Game {
         this.isMouseDown = true;
         this.fireCurrentWeapon();
       } else if (e.button === 2) {
-        this.weapons.setADS(true);
+        rmbStartTime = performance.now();
+        if (this.weapons.isADS) {
+          this.weapons.setADS(false);
+        } else {
+          this.weapons.setADS(true);
+        }
       }
     });
 
@@ -131,9 +143,17 @@ class Game {
       if (e.button === 0) {
         this.isMouseDown = false;
       } else if (e.button === 2) {
-        this.weapons.setADS(false);
+        if (performance.now() - rmbStartTime > 220) {
+          this.weapons.setADS(false);
+        }
       }
     });
+
+    // Mouse Wheel: Zoom SVD Scope / Binoculars / Weapon Cycling
+    window.addEventListener('wheel', (e) => {
+      if (this.gameState !== 'PLAYING') return;
+      this.weapons.handleMouseWheel(e.deltaY);
+    }, { passive: true });
 
     // Keyboard Controls
     window.addEventListener('keydown', (e) => {
@@ -142,13 +162,17 @@ class Game {
       if (e.code === 'Digit1') {
         this.weapons.switchWeapon(0); // Glock 17
       } else if (e.code === 'Digit2') {
-        this.weapons.switchWeapon(1); // Micro Uzi SMG
+        this.weapons.switchWeapon(1); // MP5SD3 / Uzi SMG
       } else if (e.code === 'Digit3') {
         this.weapons.switchWeapon(2); // AK-47 Assault Rifle
       } else if (e.code === 'Digit4') {
         this.weapons.switchWeapon(3); // M16A2 Combat Rifle
       } else if (e.code === 'Digit5') {
         this.weapons.switchWeapon(4); // Dragunov SVD Sniper
+      } else if (e.code === 'Digit6' || e.code === 'KeyZ') {
+        this.weapons.toggleBinoculars(); // Tactical Binoculars
+      } else if (e.code === 'Digit7' || e.code === 'KeyH') {
+        this.player.useSyringe(this.ui); // Medical Syringe (+40 HP)
       } else if (e.code === 'KeyT') {
         this.weapons.toggleSuppressor(); // Toggle Glock 17 Suppressor
       } else if (e.code === 'KeyB') {
@@ -255,6 +279,9 @@ class Game {
     this.weapons.weapons[4].currentAmmo = 5;
     this.weapons.weapons[4].reserveAmmo = 20;
     this.weapons.switchWeapon(0);
+
+    // Reset tactical pickups (medkits & ammo)
+    this.pickups.reset();
 
     // Reset objectives
     this.objectivePhase = 1;
@@ -418,7 +445,20 @@ class Game {
 
       // 4. Update Weapons (pass isThirdPerson to hide first-person hands/guns in 3rd person)
       const stance = this.player.isCrouched ? 'crouch' : 'stand';
-      this.weapons.update(delta, this.player.isMoving, this.player.isSprinting, stance, this.player.isThirdPerson);
+      this.weapons.update(
+        delta,
+        this.player.isMoving,
+        this.player.isSprinting,
+        stance,
+        this.player.isThirdPerson,
+        this.player.position,
+        this.player.getForwardDirection(),
+        this.world,
+        this.enemies
+      );
+
+      // 4b. Update Tactical Pickups (Medkits & Ammo Crates)
+      this.pickups.update(delta, time, this.player, this.weapons, this.ui);
 
       // 5. Update Decals & Particles
       this.decals.update(delta);

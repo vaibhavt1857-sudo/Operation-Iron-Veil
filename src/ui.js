@@ -30,6 +30,14 @@ export class UIManager {
     this.scopeCanvas = document.getElementById('scope-canvas');
     this.scopeCtx = this.scopeCanvas ? this.scopeCanvas.getContext('2d') : null;
 
+    this.binocularsOverlay = document.getElementById('binoculars-overlay');
+    this.binocularsCanvas = document.getElementById('binoculars-canvas');
+    this.binocularsCtx = this.binocularsCanvas ? this.binocularsCanvas.getContext('2d') : null;
+
+    this.healOverlay = document.getElementById('heal-overlay');
+    this.pickupToast = document.getElementById('pickup-toast');
+    this.syringeBadge = document.getElementById('syringe-badge');
+
     this.satmapScreen = document.getElementById('satmap-screen');
 
     this.startScreen = document.getElementById('start-screen');
@@ -44,25 +52,42 @@ export class UIManager {
     this.statRating = document.getElementById('stat-rating');
 
     this.hitmarkerTimer = 0;
+    this.toastTimer = 0;
+    this.lastScopeZoom = 4.0;
 
     this.initScopeCanvas();
   }
 
   initScopeCanvas() {
-    if (!this.scopeCanvas) return;
-    this.resizeScope();
-    window.addEventListener('resize', () => this.resizeScope());
+    this.resizeCanvases();
+    window.addEventListener('resize', () => this.resizeCanvases());
   }
 
-  resizeScope() {
-    if (!this.scopeCanvas) return;
-    this.scopeCanvas.width = window.innerWidth;
-    this.scopeCanvas.height = window.innerHeight;
-    this.renderRussianPSO1Scope();
+  resizeCanvases() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    if (this.scopeCanvas) {
+      this.scopeCanvas.width = w;
+      this.scopeCanvas.height = h;
+      this.renderRussianPSO1Scope(this.lastScopeZoom);
+    }
+    if (this.binocularsCanvas) {
+      this.binocularsCanvas.width = w;
+      this.binocularsCanvas.height = h;
+    }
+  }
+
+  showHealNotification(text, color = '#44dd77') {
+    if (!this.pickupToast) return;
+    this.pickupToast.textContent = text;
+    this.pickupToast.style.borderColor = color;
+    this.pickupToast.style.color = color;
+    this.pickupToast.classList.add('show');
+    this.toastTimer = 2.4;
   }
 
   // Authentic Russian PSO-1 Optical Rangefinder Scope Reticle (Dragunov SVD)
-  renderRussianPSO1Scope() {
+  renderRussianPSO1Scope(zoomLevel = 4.0) {
     if (!this.scopeCtx) return;
     const ctx = this.scopeCtx;
     const w = this.scopeCanvas.width;
@@ -146,8 +171,167 @@ export class UIManager {
 
     // Telemetry Text
     ctx.font = 'bold 12px monospace';
-    ctx.fillText('PSO-1 // 4X24 MAG', cx - radius * 0.75, cy - radius * 0.7);
+    ctx.fillText(`PSO-1 // ${zoomLevel.toFixed(1)}X MAG`, cx - radius * 0.75, cy - radius * 0.7);
     ctx.fillText('7.62x54mm R', cx + radius * 0.35, cy - radius * 0.7);
+  }
+
+  // Authentic Dual-Lens Military Binoculars HUD Overlay (Project IGI Style)
+  renderBinoculars(zoom, rangeMeters, headingDeg, focusEnemy, tagProgress) {
+    if (!this.binocularsCtx) return;
+    const ctx = this.binocularsCtx;
+    const w = this.binocularsCanvas.width;
+    const h = this.binocularsCanvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const radius = Math.min(w, h) * 0.38;
+    const eyeOffset = radius * 0.62;
+
+    // 1. Dual-Lens Overlapping Aperture Mask (Zero Artifact Composite Cutout)
+    ctx.save();
+    ctx.fillStyle = '#030605';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(cx - eyeOffset, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(cx + eyeOffset, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 2. Bezel Outlines
+    ctx.strokeStyle = '#18261e';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(cx - eyeOffset, cy, radius, 0, Math.PI * 2);
+    ctx.arc(cx + eyeOffset, cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Subtle optical green lens tint border
+    ctx.strokeStyle = 'rgba(56, 238, 104, 0.25)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx - eyeOffset, cy, radius - 4, 0, Math.PI * 2);
+    ctx.arc(cx + eyeOffset, cy, radius - 4, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 3. Central Military Recon Grid & Mil-Dot Reticle
+    ctx.strokeStyle = '#38ee68';
+    ctx.lineWidth = 1.4;
+
+    // Center Crosshairs
+    ctx.beginPath();
+    ctx.moveTo(cx - 36, cy);
+    ctx.lineTo(cx - 10, cy);
+    ctx.moveTo(cx + 10, cy);
+    ctx.lineTo(cx + 36, cy);
+    ctx.moveTo(cx, cy - 36);
+    ctx.lineTo(cx, cy - 10);
+    ctx.moveTo(cx, cy + 10);
+    ctx.lineTo(cx, cy + 36);
+    ctx.stroke();
+
+    // Mil-dots
+    const dotOffsets = [-28, -20, -12, 12, 20, 28];
+    ctx.fillStyle = '#38ee68';
+    dotOffsets.forEach(ox => {
+      ctx.fillRect(cx + ox - 1, cy - 1, 2, 2);
+      ctx.fillRect(cx - 1, cy + ox - 1, 2, 2);
+    });
+
+    // 4. Center Target Bracket & Auto-Tagging Status
+    if (focusEnemy) {
+      const isTagged = focusEnemy.isTagged;
+      const bracketColor = isTagged ? '#38ee68' : '#ffb733';
+      ctx.strokeStyle = bracketColor;
+      ctx.lineWidth = 2;
+
+      // Target Corner Brackets [   ]
+      const bw = 32;
+      const bh = 42;
+      const bl = 8;
+      // Top-left
+      ctx.beginPath();
+      ctx.moveTo(cx - bw, cy - bh + bl);
+      ctx.lineTo(cx - bw, cy - bh);
+      ctx.lineTo(cx - bw + bl, cy - bh);
+      // Top-right
+      ctx.moveTo(cx + bw - bl, cy - bh);
+      ctx.lineTo(cx + bw, cy - bh);
+      ctx.lineTo(cx + bw, cy - bh + bl);
+      // Bottom-left
+      ctx.moveTo(cx - bw, cy + bh - bl);
+      ctx.lineTo(cx - bw, cy + bh);
+      ctx.lineTo(cx - bw + bl, cy + bh);
+      // Bottom-right
+      ctx.moveTo(cx + bw - bl, cy + bh);
+      ctx.lineTo(cx + bw, cy + bh);
+      ctx.lineTo(cx + bw, cy + bh - bl);
+      ctx.stroke();
+
+      ctx.font = 'bold 11px monospace';
+      ctx.fillStyle = bracketColor;
+      ctx.textAlign = 'center';
+
+      if (isTagged) {
+        ctx.fillText(`[ HOSTILE IDENTIFIED // ${focusEnemy.state} ]`, cx, cy - bh - 8);
+        ctx.fillText(`TARGET LOCKED (RADAR LINKED)`, cx, cy + bh + 16);
+      } else {
+        const pct = Math.min(100, Math.round(tagProgress * 100));
+        ctx.fillText(`ACQUIRING INTEL... ${pct}%`, cx, cy - bh - 8);
+
+        // Progress bar below
+        ctx.strokeStyle = '#ffb733';
+        ctx.strokeRect(cx - 30, cy + bh + 8, 60, 6);
+        ctx.fillStyle = '#ffb733';
+        ctx.fillRect(cx - 28, cy + bh + 10, 56 * Math.min(1, tagProgress), 2);
+      }
+    }
+
+    // 5. Compass Heading Tape (Top Center)
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#38ee68';
+    ctx.font = 'bold 13px monospace';
+    const cardinal = (headingDeg >= 338 || headingDeg < 23) ? 'N' :
+                     headingDeg < 68 ? 'NE' :
+                     headingDeg < 113 ? 'E' :
+                     headingDeg < 158 ? 'SE' :
+                     headingDeg < 203 ? 'S' :
+                     headingDeg < 248 ? 'SW' :
+                     headingDeg < 293 ? 'W' : 'NW';
+    ctx.fillText(`HDG: ${String(headingDeg).padStart(3, '0')}° ${cardinal}`, cx, cy - radius * 0.72);
+
+    ctx.strokeStyle = 'rgba(56, 238, 104, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - 80, cy - radius * 0.68);
+    ctx.lineTo(cx + 80, cy - radius * 0.68);
+    ctx.moveTo(cx, cy - radius * 0.68);
+    ctx.lineTo(cx, cy - radius * 0.64);
+    ctx.stroke();
+
+    // 6. Digital Magnification Indicator (Bottom-Left)
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(`OPTICAL MAG: ${zoom.toFixed(1)}X`, cx - radius * 1.1, cy + radius * 0.72);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#8da495';
+    ctx.fillText('FOV: 2.0X - 12.0X [WHEEL]', cx - radius * 1.1, cy + radius * 0.72 + 16);
+
+    // 7. Laser Metric Rangefinder (Bottom-Right)
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillStyle = '#38ee68';
+    const rangeText = rangeMeters > 0 ? `${rangeMeters} M` : '--- M';
+    ctx.fillText(`RANGE: ${rangeText}`, cx + radius * 1.1, cy + radius * 0.72);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#8da495';
+    ctx.fillText('LASER RANGEFINDER', cx + radius * 1.1, cy + radius * 0.72 + 16);
   }
 
   showHitmarker() {
@@ -186,31 +370,65 @@ export class UIManager {
       this.visBadge.style.color = '#8da495';
     }
 
+    if (this.syringeBadge) {
+      this.syringeBadge.textContent = `MED SYRINGE [H / 7]: ${player.syringeCount}`;
+    }
+
     // 3. Weapon & Fire Mode Details
     const currentWeapon = weapons.getCurrentWeapon();
-    this.weaponName.textContent = currentWeapon.name;
-    this.ammoCur.textContent = weapons.isReloading ? 'RELOAD' : currentWeapon.currentAmmo;
-    this.ammoRes.textContent = currentWeapon.reserveAmmo;
+    if (weapons.isBinocularsActive) {
+      this.weaponName.textContent = 'TACTICAL BINOCULARS';
+      this.ammoCur.textContent = 'OPTIC';
+      this.ammoRes.textContent = `${weapons.binocularZoom.toFixed(1)}X`;
+      this.fireMode.textContent = 'RECON // TAG HOSTILES [Z / 6]';
+    } else {
+      this.weaponName.textContent = currentWeapon.name;
+      this.ammoCur.textContent = weapons.isReloading ? 'RELOAD' : currentWeapon.currentAmmo;
+      this.ammoRes.textContent = currentWeapon.reserveAmmo;
 
-    // Tactical fire mode & attachment details
-    if (currentWeapon.id === 'glock') {
-      this.fireMode.textContent = currentWeapon.isSuppressed ? 'SEMI [SUPPRESSED - T]' : 'SEMI [UNSUPPRESSED - T]';
-    } else if (currentWeapon.id === 'uzi') {
-      this.fireMode.textContent = 'FULL-AUTO 800 RPM';
-    } else if (currentWeapon.id === 'ak47') {
-      this.fireMode.textContent = 'FULL-AUTO 7.62mm';
-    } else if (currentWeapon.id === 'm16') {
-      this.fireMode.textContent = currentWeapon.isBurstMode ? '3-ROUND BURST [B]' : 'FULL-AUTO [B]';
-    } else if (currentWeapon.id === 'svd') {
-      this.fireMode.textContent = 'BOLT-ACTION 4X SCOPE';
+      // Tactical fire mode & attachment details
+      if (currentWeapon.id === 'glock') {
+        this.fireMode.textContent = currentWeapon.isSuppressed ? 'SEMI [SUPPRESSED - T]' : 'SEMI [UNSUPPRESSED - T]';
+      } else if (currentWeapon.id === 'uzi') {
+        this.fireMode.textContent = 'FULL-AUTO 800 RPM';
+      } else if (currentWeapon.id === 'ak47') {
+        this.fireMode.textContent = 'FULL-AUTO 7.62mm';
+      } else if (currentWeapon.id === 'm16') {
+        this.fireMode.textContent = currentWeapon.isBurstMode ? '3-ROUND BURST [B]' : 'FULL-AUTO [B]';
+      } else if (currentWeapon.id === 'svd') {
+        this.fireMode.textContent = `SNIPER [${weapons.svdZoom.toFixed(1)}X SCOPE - RMB]`;
+      }
     }
 
     // 4. Sniper Scope Visibility
-    const isSniperADS = (currentWeapon.id === 'svd' && weapons.isADS && weapons.adsProgress > 0.8);
+    const isSniperADS = (!weapons.isBinocularsActive && currentWeapon.id === 'svd' && weapons.isADS && weapons.adsProgress > 0.8);
     this.sniperScopeOverlay.style.display = isSniperADS ? 'block' : 'none';
+    if (isSniperADS) {
+      if (Math.abs(this.lastScopeZoom - weapons.svdZoom) > 0.05) {
+        this.lastScopeZoom = weapons.svdZoom;
+        this.renderRussianPSO1Scope(weapons.svdZoom);
+      }
+    }
+
+    // Tactical Binoculars Visibility
+    const isBinos = weapons.isBinocularsActive;
+    if (this.binocularsOverlay) {
+      this.binocularsOverlay.style.display = isBinos ? 'block' : 'none';
+      if (isBinos) {
+        const headingRad = player.yaw % (Math.PI * 2);
+        const headingDeg = Math.round(((headingRad < 0 ? headingRad + Math.PI * 2 : headingRad) / (Math.PI * 2)) * 360);
+        this.renderBinoculars(
+          weapons.binocularZoom,
+          weapons.binocularRangeMeters,
+          headingDeg,
+          weapons.binocularFocusEnemy,
+          weapons.binocularTagTimer / 1.0
+        );
+      }
+    }
 
     // 5. Crosshair Dynamics
-    if (isSniperADS) {
+    if (isSniperADS || isBinos) {
       this.crosshair.style.opacity = '0';
     } else if (weapons.isADS) {
       this.crosshair.style.width = '14px';
@@ -251,6 +469,24 @@ export class UIManager {
       this.damageOverlay.style.boxShadow = `inset 0 0 100px rgba(255, 0, 0, ${pulse})`;
     } else {
       this.damageOverlay.style.boxShadow = 'inset 0 0 100px rgba(255, 0, 0, 0)';
+    }
+
+    // 7b. Medical Syringe / Pickup Recovery Glow
+    if (this.healOverlay) {
+      if (player.healFlashTimer > 0) {
+        const alpha = Math.min(0.65, (player.healFlashTimer / 0.6) * 0.65);
+        this.healOverlay.style.boxShadow = `inset 0 0 120px rgba(50, 240, 100, ${alpha})`;
+      } else {
+        this.healOverlay.style.boxShadow = 'inset 0 0 120px rgba(50, 240, 100, 0)';
+      }
+    }
+
+    // 7c. Pickup Notification Toast Timer
+    if (this.toastTimer > 0) {
+      this.toastTimer -= delta;
+      if (this.toastTimer <= 0 && this.pickupToast) {
+        this.pickupToast.classList.remove('show');
+      }
     }
 
     // 8. Directional Hit Arc

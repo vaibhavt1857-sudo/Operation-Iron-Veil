@@ -157,6 +157,18 @@ export class TacticalRadar {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1;
       ctx.stroke();
+
+      // Tactical Highlight for Binocular-Tagged Guards
+      if (g.isTagged) {
+        ctx.strokeStyle = '#38ee68';
+        ctx.lineWidth = 1.6;
+        const s = 7;
+        ctx.strokeRect(gp.x - s, gp.y - s, s * 2, s * 2);
+        ctx.fillStyle = '#ffea55';
+        ctx.beginPath();
+        ctx.arc(gp.x, gp.y - 10, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
     });
 
     // 5. Radar Sweep Line

@@ -16,15 +16,26 @@
   <!-- Damage Blood Vignette Overlay -->
   <div id="damage-overlay"></div>
 
+  <!-- Medical Syringe / Pickup Recovery Glow Overlay -->
+  <div id="heal-overlay"></div>
+
   <!-- Directional Bullet Damage Indicator -->
   <div id="damage-indicator">
     <div class="damage-arc" id="damage-arc"></div>
   </div>
 
-  <!-- Sniper Rifle 4x Optical Scope Overlay -->
+  <!-- Sniper Rifle 4x-8x Optical PSO-1 Scope Overlay -->
   <div id="sniper-scope-overlay">
     <canvas id="scope-canvas"></canvas>
   </div>
+
+  <!-- Tactical Reconnaissance Dual-Lens Binoculars Overlay ("Z" or "6" Key) -->
+  <div id="binoculars-overlay">
+    <canvas id="binoculars-canvas"></canvas>
+  </div>
+
+  <!-- Floating Pickup Notification Toast -->
+  <div id="pickup-toast"></div>
 
   <!-- Tactical Satellite PDA Map ("M" Key) -->
   <div id="satmap-screen">
@@ -105,6 +116,7 @@
         <div class="stance-container">
           <div class="stance-badge" id="stance-badge">STAND</div>
           <div class="visibility-badge" id="vis-badge">VISIBILITY: NORMAL</div>
+          <div class="syringe-badge" id="syringe-badge">MED SYRINGE [H / 7]: 3</div>
         </div>
       </div>
 
@@ -140,8 +152,11 @@
         <div class="control-item"><span>Toggle Crouch (Stealth)</span><span class="key-badge">C</span></div>
         <div class="control-item"><span>Jump</span><span class="key-badge">Space</span></div>
         <div class="control-item"><span>Fire Weapon</span><span class="key-badge">Left Click</span></div>
-        <div class="control-item"><span>Aim Down Sights / 4x Scope</span><span class="key-badge">Right Click</span></div>
-        <div class="control-item"><span>Glock 17 / Uzi / AK-47 / M16 / SVD</span><span class="key-badge">1 / 2 / 3 / 4 / 5</span></div>
+        <div class="control-item"><span>Aim / SVD Sniper Zoom</span><span class="key-badge">Right Click</span></div>
+        <div class="control-item"><span>Zoom Adjust / Weapon Cycle</span><span class="key-badge">Mouse Wheel</span></div>
+        <div class="control-item"><span>Glock / MP5 / AK47 / M16 / SVD</span><span class="key-badge">1 / 2 / 3 / 4 / 5</span></div>
+        <div class="control-item"><span>Tactical Binoculars</span><span class="key-badge">6 / Z</span></div>
+        <div class="control-item"><span>Use Medical Syringe (+40 HP)</span><span class="key-badge">7 / H</span></div>
         <div class="control-item"><span>Toggle Glock Suppressor</span><span class="key-badge">T</span></div>
         <div class="control-item"><span>Toggle M16 Burst / Auto</span><span class="key-badge">B</span></div>
         <div class="control-item"><span>Toggle 1st / 3rd Person View</span><span class="key-badge">V</span></div>

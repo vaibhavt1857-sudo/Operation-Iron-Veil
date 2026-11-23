@@ -43,13 +43,16 @@ http://localhost:5173/
 | Key / Input | Action | Tactical Details |
 | :--- | :--- | :--- |
 | **W, A, S, D** | Movement | Walk / Strafe operative |
-| **Mouse Look** | Aim / Look | Pointer-lock FPS view |
+| **Mouse Look** | Aim / Look | Pointer-lock FPS view (sensitivity scales with zoom level) |
 | **Shift** | Tactical Sprint | Faster movement; tilts weapon forward; enlarges noise radius |
 | **C** | Toggle Crouch | Lowers camera, reduces walking speed, shrinks detection footprint |
 | **Space** | Jump | Vault over low barriers and sandbag lines |
 | **Left Click** | Fire Weapon | Ballistic raycasting with decals and surface particles |
-| **Right Click (Hold)** | Aim Down Sights (ADS) | Centers iron sights; activates PSO-1 4x Scope on Dragunov SVD |
+| **Right Click (Hold / Tap)** | Aim / SVD Scope | Centers sights; activates 4.0x–8.0x PSO-1 Optical Scope on Dragunov SVD |
+| **Mouse Wheel** | Zoom / Weapon Cycle | Adjusts SVD Scope (4x–8x) or Binocular Zoom (2x–12x); cycles weapons |
 | **1 / 2 / 3 / 4 / 5** | Weapon Select | Glock 17 / MP5SD3 / AK-47 / M16A2 / Dragunov SVD |
+| **6 / Z** | Tactical Binoculars | Dual-lens optics with compass, laser rangefinder & 1s guard auto-tagging |
+| **7 / H** | Medical Syringe | Consumes 1 of 3 field syringes (+40 HP recovery, pneumatic injection sound) |
 | **T** | Toggle Suppressor | Attaches / detaches silencer on Glock 17 (whisper quiet vs loud) |
 | **B** | Toggle Burst Mode | Switches Colt M16A2 between 3-Round Burst and Full-Auto |
 | **V** | Toggle Perspective | Switches between First-Person and Third-Person (David Jones) |
@@ -74,9 +77,15 @@ http://localhost:5173/
 - **MP5SD3 SMG (Key 2):** Iconic Project IGI suppressed submachine gun with cylindrical perforated shroud, hooded circular front sight ring, rear rotary drum sight, curved 30-round 9mm magazine, and retractable stock rails.
 - **AK-47 Kalashnikov (Key 3):** Stamped ribbed steel receiver, Russian laminate wood stock and handguard, front sight post with protective ears, curved steel magazine, and 3D star-shaped volumetric muzzle flash.
 - **Colt M16A2 (Key 4):** Ribbed round handguard, A2 carrying handle with aperture peep sight, triangular front sight post, and toggleable **3-Round Burst / Full-Auto Mode** (`Key B`).
-- **Dragunov SVD (Key 5):** Long fluted barrel, skeletonized wooden thumbhole stock, and illuminated Russian PSO-1 optical rangefinder scope overlay with stadiametric rangefinder curve on right-click.
+- **Dragunov SVD (Key 5):** Long fluted barrel, skeletonized wooden thumbhole stock, and illuminated Russian PSO-1 optical rangefinder scope overlay with stadiametric rangefinder curve on right-click. Features smooth **4.0x to 8.0x variable magnification** adjusted via the mouse wheel, hiding the 3D viewmodel and scaling mouse look sensitivity for steady long-range sniping.
 
-### 3. Spetsnaz Guards & Spoken VHF Radio Voice Callouts
+### 3. Tactical Binoculars & Health Restoration System
+- **Project IGI Tactical Binoculars (Key 6 / Z):** Authentic dual-lens aperture HUD overlay with green military digital indicators, dynamic **2.0x to 12.0x digital zoom** (adjusted with mouse wheel), compass heading tape, and laser metric rangefinder.
+- **1-Second Enemy Guard Auto-Tagging:** Keeping crosshairs focused on an enemy soldier for 1.0s marks their live position and alert state on the 2D Tactical Radar and Satellite PDA Map, highlighting them with tactical bracket indicators.
+- **Project IGI Medical Syringes (Key 7 / H):** The operative carries 3 field syringes in inventory. Pressing `H` or `7` injects medicine (+40 HP recovery up to 100 max), plays pneumatic injector audio, flashes a green HUD recovery tint, and decrements syringe inventory.
+- **3D Medkit & Ammo Crate Pickups:** 11 physical pickups with procedural canvas textures distributed across Checkpoint A, Comms Outpost B, and Airbase C. Walking near a Medkit restores +35 HP with a floating `+35 HEALTH` toast alert; Ammo Crates replenish reserve munitions for all 5 firearms.
+
+### 4. Spetsnaz Guards & Spoken VHF Radio Voice Callouts
 - **Rigged Humanoid Operatives:** Humanoid skeletal meshes (`Soldier.glb`) in charcoal combat fatigues with crimson Spetsnaz berets or black balaclavas, holding forward-aimed assault rifles.
 - **Waypoint Loops & Guard Scanning:** Guards patrol flat compound gravel and tarmac roads (`terrain.getHeight`), pausing for 1.8s–3.0s at waypoints with look-around animations and smooth yaw rotation.
 - **Clean 3D Scene:** Zero floating glowing cones in mid-air. Vision cones are rendered strictly on the 2D Tactical Radar and Satellite Map.
@@ -114,6 +123,7 @@ XX555XX/
     ├── main.js             # Main game loop, state manager, mission flow
     ├── player.js           # First/Third-person pointer-lock controller & stance physics
     ├── weapons.js          # 5 Firearms, procedural sway, black-gloved hands, raycast ballistics
+    ├── pickups.js          # 3D Medkits (+35 HP) and Ammo Crates with procedural canvas textures
     ├── enemies.js          # Spetsnaz guard AI, waypoint patrol, speech synthesis callouts
     ├── cameras.js          # Destructible rotating surveillance cameras & alarm triggers
     ├── world.js            # Compound architecture, bunkers, hazard stripes, lighting, colliders
